@@ -1,0 +1,66 @@
+import json
+import urllib.request
+import urllib.error
+import I2C_LCD_driver
+import time
+
+#Pull info for Q28
+url = 'http://bustime.mta.info/api/siri/stop-monitoring.json?key=#&OperatorRef=MTA&MonitoringRef=501763&LineRef=MTA%20NYCT_Q28'
+
+#Using a library featured at http://www.circuitbasics.com/raspberry-pi-i2c-lcd-set-up-and-programming/ to display messages on a I2C LCD screen more easily.
+#Orignially posted on http://www.recantha.co.uk/blog/?p=4849 and improved by Github user DenisFromHR.
+
+mylcd = I2C_LCD_driver.lcd()
+
+#loop while there are no unaccounted errors
+while True:
+
+    #try to access arrival time of the next bus. If there are none, display message and refresh after 30 secs. 
+    try:
+        businfo = json.loads(urllib.request.urlopen(url).read().decode('utf-8'))
+
+        firstbustime = businfo['Siri']['ServiceDelivery']['StopMonitoringDelivery'][0]['MonitoredStopVisit'][0]['MonitoredVehicleJourney']['MonitoredCall']['ExpectedArrivalTime']
+        #busname= businfo['Siri']['ServiceDelivery']['StopMonitoringDelivery'][0]['MonitoredStopVisit'][0]['MonitoredVehicleJourney']['PublishedLineName']
+        fb_stopsaway = businfo['Siri']['ServiceDelivery']['StopMonitoringDelivery'][0]['MonitoredStopVisit'][0]['MonitoredVehicleJourney']['MonitoredCall']['Extensions']['Distances']['StopsFromCall']
+            
+        fb_stopsaway = str(fb_stopsaway)
+
+        mylcd.lcd_display_string("1st bus: " + firstbustime[11:16], 1)
+        mylcd.lcd_display_string("Stops away: " + fb_stopsaway, 2)
+            
+        time.sleep(15)
+        mylcd.lcd_clear()
+        
+        #If there is a bus on the way, try to access arrival time of the following bus. If there are none, display message and refresh after 15 secs.
+        try:
+            secondbustime = businfo['Siri']['ServiceDelivery']['StopMonitoringDelivery'][0]['MonitoredStopVisit'][1]['MonitoredVehicleJourney']['MonitoredCall']['ExpectedArrivalTime']
+            sb_stopsaway = businfo['Siri']['ServiceDelivery']['StopMonitoringDelivery'][0]['MonitoredStopVisit'][1]['MonitoredVehicleJourney']['MonitoredCall']['Extensions']['Distances']['StopsFromCall']
+            sb_stopsaway = str(sb_stopsaway)
+                
+            mylcd.lcd_display_string("2nd bus: " + secondbustime[11:16], 1)
+            mylcd.lcd_display_string("Stops away: "+ sb_stopsaway, 2)
+
+                
+        except (KeyError, IndexError):
+            mylcd.lcd_display_string("2nd bus:1st stop",1)
+            mylcd.lcd_display_string("Has not left.",2)
+
+        except urllib.error.HTTPError:
+            mylcd.lcd_display_string("Trouble accessing site",1)
+            mylcd.lcd_display_string("Refreshing...", 2)
+
+                
+           
+    except (KeyError,IndexError):
+        mylcd.lcd_display_string("At first stop.",1)
+        mylcd.lcd_display_string("Has not left.", 2)
+        time.sleep(15)
+    
+    #Added because site occasionally returns HTTP Error: 504. Gateway timeout.  
+    except urllib.error.HTTPError:
+        mylcd.lcd_display_string("Trouble accessing site",1)
+        mylcd.lcd_display_string("Refreshing...", 2)
+        time.sleep(15)
+
+    time.sleep(15)
+    mylcd.lcd_clear()
