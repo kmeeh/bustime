@@ -5,7 +5,7 @@ import I2C_LCD_driver
 import time
 
 
-url = 'http://bustime.mta.info/api/siri/stop-monitoring.json?key=1e919ec6-ea12-43ee-856b-f8a6a9cee0a6&OperatorRef=MTA&MonitoringRef=501763&LineRef=MTA%20NYCT_Q28'
+url = 'http://bustime.mta.info/api/siri/stop-monitoring.json?key=...&OperatorRef=MTA&MonitoringRef=501763&LineRef=MTA%20NYCT_Q28'
 mylcd = I2C_LCD_driver.lcd()
 
 
